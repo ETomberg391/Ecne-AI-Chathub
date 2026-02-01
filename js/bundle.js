@@ -1213,7 +1213,7 @@ Vue.createApp({
         // Session management
         const sessions = Vue.ref([]);
         const currentSessionId = Vue.ref(null);
-        const sidebarCollapsed = Vue.ref(false);
+        const sidebarCollapsed = Vue.ref(true); // Default collapsed
         const sessionMenu = Vue.ref({ show: false, x: 0, y: 0, session: null });
         const showRenameModal = Vue.ref(false);
         const renameValue = Vue.ref('');
@@ -2157,10 +2157,14 @@ Vue.createApp({
             // Add global keyboard event listeners
             document.addEventListener('keydown', handleGlobalKeydown);
             
-            // Close sidebar on mobile
-            if (window.innerWidth < 1024) {
-                sidebarCollapsed.value = true;
-            }
+            // Close sidebar when clicking outside
+            document.addEventListener('click', (e) => {
+                const sidebar = document.querySelector('aside');
+                const toggleBtn = document.querySelector('[title="Toggle Sidebar"]');
+                if (sidebar && !sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)) {
+                    sidebarCollapsed.value = true;
+                }
+            });
         });
 
         Vue.watch(() => settings.value.stream, () => {

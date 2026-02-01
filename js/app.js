@@ -135,7 +135,7 @@ createApp({
         // Session management
         const sessions = ref([]);
         const currentSessionId = ref(null);
-        const sidebarCollapsed = ref(false);
+        const sidebarCollapsed = ref(true); // Default collapsed
         const sessionMenu = ref({ show: false, x: 0, y: 0, session: null });
         const showRenameModal = ref(false);
         const renameValue = ref('');
@@ -673,10 +673,14 @@ createApp({
             // Add global keyboard event listeners
             document.addEventListener('keydown', handleGlobalKeydown);
             
-            // Close sidebar on mobile
-            if (window.innerWidth < 1024) {
-                sidebarCollapsed.value = true;
-            }
+            // Close sidebar when clicking outside
+            document.addEventListener('click', (e) => {
+                const sidebar = document.querySelector('aside');
+                const toggleBtn = document.querySelector('[title="Toggle Sidebar"]');
+                if (sidebar && !sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)) {
+                    sidebarCollapsed.value = true;
+                }
+            });
         });
 
         // Watchers
