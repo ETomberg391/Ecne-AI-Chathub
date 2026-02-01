@@ -11,6 +11,7 @@ import { saveSettings, loadSettings, saveChatHistory, loadChatHistory, clearChat
 // Default settings configuration
 const defaultSettings = {
     backend: 'openai',
+    theme: 'dark',
     systemPrompt: 'You are a helpful coding assistant. You provide clear, well-commented code examples and explanations.',
     temperature: 0.7,
     maxTokens: 4096,
@@ -121,8 +122,32 @@ createApp({
         const testingConnection = ref(false);
         const abortController = ref(null);
         const settings = ref({ ...defaultSettings });
+        const activeTab = ref('general');
+        const showHelp = ref(false);
+        
+        // Search functionality
+        const showSearch = ref(false);
+        const searchQuery = ref('');
+        const searchResults = ref([]);
+        const hasSearched = ref(false);
+        const searchInput = ref(null);
+        
+        // Session management
+        const sessions = ref([]);
+        const currentSessionId = ref(null);
+        const sidebarCollapsed = ref(false);
+        const sessionMenu = ref({ show: false, x: 0, y: 0, session: null });
+        const showRenameModal = ref(false);
+        const renameValue = ref('');
+        const renameInput = ref(null);
+        const sessionToRename = ref(null);
+        let autoSaveTimeout = null;
 
         // Computed
+        const sortedSessions = computed(() => {
+            return [...sessions.value].sort((a, b) => b.updatedAt - a.updatedAt);
+        });
+
         const currentBackendLabel = computed(() => {
             return getBackendLabel(settings.value.backend);
         });
@@ -139,6 +164,16 @@ createApp({
         const autoResize = (e) => {
             e.target.style.height = 'auto';
             e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+        };
+
+        const handleEnter = (e) => {
+            if (e.shiftKey) {
+                // Allow default behavior (new line)
+                return;
+            }
+            // Send message
+            e.preventDefault();
+            sendMessage();
         };
 
         const getAdapterConfig = () => {
@@ -332,16 +367,327 @@ createApp({
             }
         };
 
+        // Theme handling
+        const applyTheme = (theme) => {
+            document.documentElement.setAttribute('data-theme', theme);
+        };
+
+        const toggleTheme = () => {
+            const newTheme = settings.value.theme === 'dark' ? 'light' : 'dark';
+            settings.value.theme = newTheme;
+            applyTheme(newTheme);
+            saveSettings(settings.value);
+        };
+
+        // Helper to check if backend supports vision
+        const supportsVision = (backend) => {
+            const visionModels = {
+                openai: ['gpt-4o', 'gpt-4-turbo', 'gpt-4o-mini'],
+                claude: ['claude-3', 'claude-3-5'],
+                ollama: ['llava', 'bakllava', 'moondream']
+            };
+            
+            if (!visionModels[backend]) return false;
+            
+            const model = settings.value[backend]?.model || '';
+            return visionModels[backend].some(vm => model.toLowerCase().includes(vm.toLowerCase()));
+        };
+
+        // Computed property for current vision support
+        const visionSupported = computed(() => {
+            return supportsVision(settings.value.backend);
+        });
+
+        // Search functionality
+        const performSearch = () => {
+            if (!searchQuery.value.trim()) {
+                searchResults.value = [];
+                hasSearched.value = false;
+                return;
+            }
+            
+            hasSearched.value = true;
+            const query = searchQuery.value.toLowerCase();
+            const results = [];
+            
+            messages.value.forEach((msg, index) => {
+                const content = msg.content?.toLowerCase() || '';
+                if (content.includes(query)) {
+                    results.push({
+                        index,
+                        role: msg.role,
+                        content: msg.content,
+                        timestamp: msg.timestamp
+                    });
+                }
+            });
+            
+            searchResults.value = results;
+        };
+        
+        const highlightMatch = (content, query) => {
+            if (!query) return content;
+            const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+            return content.replace(regex, '<mark style="background-color: var(--accent-primary); color: var(--text-primary); padding: 0 2px; border-radius: 2px;">$1</mark>');
+        };
+        
+        const escapeRegExp = (string) => {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        };
+        
+        const jumpToMessage = (index) => {
+            showSearch.value = false;
+            nextTick(() => {
+                const messageElements = messagesContainer.value?.querySelectorAll('[data-message-index]');
+                if (messageElements && messageElements[index]) {
+                    messageElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Add a brief highlight effect
+                    messageElements[index].style.transition = 'background-color 0.3s';
+                    const originalBg = messageElements[index].style.backgroundColor;
+                    messageElements[index].style.backgroundColor = 'var(--accent-primary)';
+                    setTimeout(() => {
+                        messageElements[index].style.backgroundColor = originalBg;
+                    }, 1000);
+                }
+            });
+        };
+
+        // Session Management Functions
+        const formatTimeAgo = (timestamp) => {
+            const seconds = Math.floor((Date.now() - timestamp) / 1000);
+            if (seconds < 60) return 'just now';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `${days}d ago`;
+            return new Date(timestamp).toLocaleDateString();
+        };
+
+        const createNewSession = () => {
+            // Save current session if it exists
+            if (currentSessionId.value) {
+                saveCurrentSession();
+            }
+            
+            // Create new session
+            const newSession = createSession([]);
+            sessions.value.push(newSession);
+            currentSessionId.value = newSession.id;
+            messages.value = [];
+            attachments.value = [];
+            
+            saveSessions(sessions.value);
+            saveCurrentSessionId(newSession.id);
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 1024) {
+                sidebarCollapsed.value = true;
+            }
+        };
+
+        const switchToSession = (sessionId) => {
+            if (sessionId === currentSessionId.value) return;
+            
+            // Save current session
+            saveCurrentSession();
+            
+            // Load new session
+            const session = getSessionById(sessions.value, sessionId);
+            if (session) {
+                currentSessionId.value = sessionId;
+                messages.value = [...session.messages];
+                attachments.value = [];
+                saveCurrentSessionId(sessionId);
+            }
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 1024) {
+                sidebarCollapsed.value = true;
+            }
+        };
+
+        const saveCurrentSession = () => {
+            if (!currentSessionId.value) return;
+            
+            sessions.value = updateSession(sessions.value, currentSessionId.value, {
+                messages: [...messages.value]
+            });
+            saveSessions(sessions.value);
+        };
+
+        const debouncedAutoSave = () => {
+            if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                saveCurrentSession();
+            }, 2000);
+        };
+
+        const showSessionMenu = (session, event) => {
+            sessionMenu.value = {
+                show: true,
+                x: event.clientX,
+                y: event.clientY,
+                session: session
+            };
+        };
+
+        const renameSession = (session) => {
+            sessionMenu.value.show = false;
+            sessionToRename.value = session;
+            renameValue.value = session.title;
+            showRenameModal.value = true;
+            nextTick(() => {
+                if (renameInput.value) renameInput.value.focus();
+            });
+        };
+
+        const confirmRename = () => {
+            if (sessionToRename.value && renameValue.value.trim()) {
+                sessions.value = updateSession(sessions.value, sessionToRename.value.id, {
+                    title: renameValue.value.trim()
+                });
+                saveSessions(sessions.value);
+            }
+            showRenameModal.value = false;
+            sessionToRename.value = null;
+            renameValue.value = '';
+        };
+
+        const duplicateSession = (session) => {
+            sessionMenu.value.show = false;
+            const newSession = createSession([...session.messages]);
+            newSession.title = `${session.title} (Copy)`;
+            sessions.value.push(newSession);
+            saveSessions(sessions.value);
+        };
+
+        const deleteSessionHandler = (session) => {
+            sessionMenu.value.show = false;
+            sessions.value = deleteSession(sessions.value, session.id);
+            
+            // If we deleted the current session, switch to another or create new
+            if (currentSessionId.value === session.id) {
+                if (sessions.value.length > 0) {
+                    switchToSession(sessions.value[sessions.value.length - 1].id);
+                } else {
+                    createNewSession();
+                }
+            }
+            
+            saveSessions(sessions.value);
+        };
+
+        // Keyboard shortcuts handler
+        const handleGlobalKeydown = (e) => {
+            // Cmd/Ctrl + Enter to send message
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+            // Esc to cancel/close modals
+            if (e.key === 'Escape') {
+                if (showSearch.value) {
+                    showSearch.value = false;
+                    return;
+                }
+                if (showSettings.value) {
+                    showSettings.value = false;
+                    return;
+                }
+                if (showHelp.value) {
+                    showHelp.value = false;
+                    return;
+                }
+            }
+            // Cmd/Ctrl + K to open search (when not in search input)
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                if (document.activeElement !== searchInput.value) {
+                    showSearch.value = true;
+                    nextTick(() => {
+                        if (searchInput.value) {
+                            searchInput.value.focus();
+                        }
+                    });
+                }
+            }
+            // Cmd/Ctrl + Shift + K to focus chat input
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'K') {
+                e.preventDefault();
+                if (textarea.value) {
+                    textarea.value.focus();
+                }
+            }
+            // Cmd/Ctrl + / to toggle settings
+            if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+                e.preventDefault();
+                showSettings.value = !showSettings.value;
+            }
+            // ? to show help (when not in input)
+            if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                const activeElement = document.activeElement;
+                if (activeElement && activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    showHelp.value = !showHelp.value;
+                }
+            }
+        };
+
         // Lifecycle
         onMounted(() => {
             loadSettingsHandler();
-            messages.value = loadChatHistory();
+            
+            // Load sessions
+            sessions.value = loadSessions();
+            const savedSessionId = loadCurrentSessionId();
+            
+            // Migrate old chat history to a session if it exists
+            const oldHistory = loadChatHistory();
+            if (oldHistory.length > 0 && sessions.value.length === 0) {
+                const migratedSession = createSession(oldHistory);
+                sessions.value.push(migratedSession);
+                currentSessionId.value = migratedSession.id;
+                messages.value = [...oldHistory];
+                saveSessions(sessions.value);
+                saveCurrentSessionId(migratedSession.id);
+            } else if (savedSessionId && getSessionById(sessions.value, savedSessionId)) {
+                // Restore last active session
+                currentSessionId.value = savedSessionId;
+                const session = getSessionById(sessions.value, savedSessionId);
+                messages.value = [...session.messages];
+            } else if (sessions.value.length > 0) {
+                // Use most recent session
+                const mostRecent = sessions.value.sort((a, b) => b.updatedAt - a.updatedAt)[0];
+                currentSessionId.value = mostRecent.id;
+                messages.value = [...mostRecent.messages];
+            } else {
+                // Create first session
+                createNewSession();
+            }
+            
+            // Apply theme on load
+            applyTheme(settings.value.theme || 'dark');
+            
+            // Add global keyboard event listeners
+            document.addEventListener('keydown', handleGlobalKeydown);
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 1024) {
+                sidebarCollapsed.value = true;
+            }
         });
 
         // Watchers
         watch(() => settings.value.stream, () => {
             saveSettings(settings.value);
         });
+
+        // Auto-save messages when they change
+        watch(messages, () => {
+            debouncedAutoSave();
+        }, { deep: true });
 
         // Expose to template
         return {
@@ -352,21 +698,54 @@ createApp({
             messagesContainer,
             textarea,
             settings,
+            showHelp,
             currentBackendLabel,
             connectionError,
             testingConnection,
+            activeTab,
             sendMessage,
             clearChat,
             saveSettings: saveSettingsHandler,
             testConnection,
             renderMarkdown,
             autoResize,
+            handleEnter,
+            toggleTheme,
             // New helper methods for settings UI
             getModelContext,
             getMaxTokensLimit,
             getTokenStep,
             formatTokens,
-            updateMaxTokensForModel
+            updateMaxTokensForModel,
+            // Search functionality
+            showSearch,
+            searchQuery,
+            searchResults,
+            hasSearched,
+            searchInput,
+            performSearch,
+            highlightMatch,
+            jumpToMessage,
+            // Vision support
+            supportsVision,
+            visionSupported,
+            // Session management
+            sessions,
+            sortedSessions,
+            currentSessionId,
+            sidebarCollapsed,
+            sessionMenu,
+            showRenameModal,
+            renameValue,
+            renameInput,
+            formatTimeAgo,
+            createNewSession,
+            switchToSession,
+            showSessionMenu,
+            renameSession,
+            confirmRename,
+            duplicateSession,
+            deleteSessionHandler
         };
     }
 }).mount('#app');
