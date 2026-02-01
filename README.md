@@ -1,8 +1,7 @@
 # AI Chat Hub
 
 A modular, airgap-friendly AI chat application with support for multiple LLM backends, document parsing, OCR, and text-to-speech.
-
-![AI Chat Hub](settings_scrolled.png)
+<img width="2717" height="1587" alt="image" src="https://github.com/user-attachments/assets/dea4a782-f606-4d12-bfca-3110743c253b" />
 
 ## Features
 
@@ -210,3 +209,4 @@ This project is provided as-is for educational and personal use.
 ---
 
 **Note**: This is a client-side application. API keys and data are stored locally in your browser. Always use appropriate security measures when handling API keys.
+
