@@ -1,0 +1,315 @@
+/* Custom Prose Styles for Dark Theme */
+* { font-family: 'Inter', sans-serif; }
+
+.prose-custom {
+    color: #e5e7eb;
+    max-width: none;
+    line-height: 1.75;
+}
+
+.prose-custom h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    color: #fff;
+    border-bottom: 1px solid #374151;
+    padding-bottom: 0.5rem;
+}
+
+.prose-custom h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: #fff;
+    border-bottom: 1px solid #374151;
+    padding-bottom: 0.375rem;
+}
+
+.prose-custom h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.prose-custom h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #f3f4f6;
+}
+
+.prose-custom p {
+    margin-bottom: 1rem;
+}
+
+.prose-custom p:last-child {
+    margin-bottom: 0;
+}
+
+.prose-custom a {
+    color: #a78bfa;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.prose-custom a:hover {
+    color: #c4b5fd;
+}
+
+.prose-custom strong {
+    color: #fff;
+    font-weight: 600;
+}
+
+.prose-custom code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875em;
+    background: rgba(167, 139, 250, 0.15);
+    color: #e9d5ff;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(167, 139, 250, 0.25);
+}
+
+.prose-custom pre {
+    margin: 1rem 0;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.prose-custom pre code {
+    display: block;
+    background: #0d1117 !important;
+    color: #c9d1d9;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    border: 1px solid #30363d;
+}
+
+.prose-custom ul, .prose-custom ol {
+    margin: 0.75rem 0;
+    padding-left: 1.5rem;
+}
+
+.prose-custom ul {
+    list-style-type: disc;
+}
+
+.prose-custom ol {
+    list-style-type: decimal;
+}
+
+.prose-custom li {
+    margin-bottom: 0.375rem;
+    padding-left: 0.375rem;
+}
+
+.prose-custom li > * {
+    display: inline;
+}
+
+.prose-custom blockquote {
+    border-left: 4px solid #7c3aed;
+    background: linear-gradient(to right, rgba(124, 58, 237, 0.1), transparent);
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+    font-style: italic;
+    color: #d1d5db;
+}
+
+.prose-custom blockquote p {
+    margin-bottom: 0;
+}
+
+.prose-custom hr {
+    border-color: #374151;
+    margin: 1.5rem 0;
+}
+
+.prose-custom table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+}
+
+.prose-custom th {
+    background: #1f2937;
+    color: #f9fafb;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border: 1px solid #374151;
+}
+
+.prose-custom td {
+    padding: 0.75rem 1rem;
+    border: 1px solid #374151;
+    color: #d1d5db;
+}
+
+.prose-custom tr:nth-child(even) {
+    background: rgba(31, 41, 55, 0.5);
+}
+
+.prose-custom tr:hover {
+    background: rgba(55, 65, 81, 0.5);
+}
+
+.prose-custom img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    border: 1px solid #374151;
+}
+
+.prose-custom details {
+    margin: 0.75rem 0;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.prose-custom details summary {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    background: #111827;
+    color: #e5e7eb;
+    user-select: none;
+}
+
+.prose-custom details summary:hover {
+    background: #1f2937;
+}
+
+.prose-custom details[open] summary {
+    border-bottom: 1px solid #374151;
+}
+
+.prose-custom details > * {
+    padding: 0.75rem 1rem;
+}
+
+/* Code Block Wrapper */
+.code-block-wrapper {
+    position: relative;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #30363d;
+}
+
+.code-block-wrapper pre {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #161b22;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #30363d;
+}
+
+.code-language {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.copy-btn {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    opacity: 0.7;
+}
+
+.copy-btn:hover {
+    background: #30363d;
+    color: #fff;
+    opacity: 1;
+}
+
+.copy-btn.copied {
+    background: #238636;
+    border-color: #238636;
+    color: #fff;
+    opacity: 1;
+}
+
+/* Highlight.js Overrides */
+.hljs {
+    background: #0d1117 !important;
+    padding: 1rem !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+}
+
+/* Animations */
+.message-enter-active { transition: all 0.3s ease; }
+.message-enter-from { opacity: 0; transform: translateY(10px); }
+
+.typing-indicator span {
+    animation: blink 1.4s infinite both;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1f2937; }
+::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+.gradient-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.cursor-blink::after {
+    content: '▋';
+    animation: cursorBlink 1s infinite;
+    margin-left: 2px;
+    color: #a855f7;
+}
+
+@keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #7c3aed;
+}
+
+/* Sticky message action buttons */
+.group\/message:hover .sticky {
+    opacity: 1;
+}
