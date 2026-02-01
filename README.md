@@ -20,6 +20,7 @@ A modular, airgap-friendly AI chat application with support for multiple LLM bac
 - **Excel Files**: XLSX/XLS support via SheetJS
 - **EPUB**: E-book format support
 - **Images**: JPG, PNG, GIF, WebP with vision API support (where available)
+- **Lazy Loading**: Document parsing libraries loaded on-demand for faster initial load
 
 ### Text-to-Speech (TTS)
 - **Web Speech API**: Built-in browser TTS with voice selection
@@ -36,15 +37,23 @@ A modular, airgap-friendly AI chat application with support for multiple LLM bac
 - **Code Blocks**: Copy-to-clipboard functionality for code snippets
 - **File Attachments**: Drag & drop or click to upload multiple files
 - **Image OCR**: Text extraction from images via Tesseract.js
+- **Image Vision**: Direct image analysis with vision-capable models (GPT-4o, Claude 3, LLaVA)
 - **Chat History**: Automatic persistence to localStorage
+- **Chat Search**: Full-text search across all messages with fuzzy matching
+- **Session Management**: Multiple concurrent chat sessions with sidebar navigation
+- **Auto-Save**: Sessions automatically save every 2 seconds
 - **OOM Protection**: Automatic message trimming (max 50 in memory, 100 saved)
 
 ### UI/UX
-- **Dark Theme**: Beautiful dark UI with purple gradient accents
+- **Dark & Light Themes**: Toggle between dark and light modes
+- **Tabbed Settings**: Organized settings into General, Backend, TTS, and Advanced tabs
+- **Collapsible Sidebar**: Session management sidebar with new chat button
+- **Keyboard Shortcuts**: Full keyboard navigation support
 - **Responsive Design**: Works on desktop and mobile
 - **Settings Persistence**: All configuration saved locally
 - **Message Actions**: Copy, read aloud, stop generation
 - **Drag & Drop**: Drop files directly into the chat input
+- **Vision Indicator**: Visual badge when using vision-capable models
 
 ## Project Structure
 
@@ -116,6 +125,46 @@ A modular, airgap-friendly AI chat application with support for multiple LLM bac
 - **Host URL**: `http://localhost:1234` (default)
 - **Model**: Auto-detected from LM Studio
 - **Requirements**: [LM Studio](https://lmstudio.ai) must be running with server enabled
+
+## Vision Support
+
+Analyze images directly with supported models:
+
+| Backend | Vision Models | Notes |
+|---------|--------------|-------|
+| OpenAI | GPT-4o, GPT-4 Turbo, GPT-4o Mini | Full vision API support |
+| Claude | Claude 3.5 Sonnet, Claude 3 Opus/Sonnet | 200K context with vision |
+| Ollama | LLaVA, BakLLaVA, Moondream | Local vision models |
+
+When a vision-capable model is selected, a "Vision" badge appears in the header. Upload images via:
+- File attachment (paperclip icon)
+- Drag & drop
+- Paste from clipboard
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl/Cmd + Enter` | Send message |
+| `Shift + Enter` | New line in input |
+| `Ctrl/Cmd + K` | Open chat search |
+| `Ctrl/Cmd + Shift + K` | Focus input field |
+| `Ctrl/Cmd + /` | Toggle settings |
+| `Esc` | Close modals/cancel generation |
+| `?` | Show keyboard shortcuts help |
+
+## Session Management
+
+Organize your conversations with multiple sessions:
+
+- **Create**: Click "New Chat" or the + button to start a fresh session
+- **Switch**: Click any session in the sidebar to load its messages
+- **Rename**: Right-click menu → Rename to give sessions custom titles
+- **Duplicate**: Clone existing sessions with all their history
+- **Delete**: Remove sessions you no longer need
+- **Auto-Save**: Sessions save automatically every 2 seconds
+
+Sessions are sorted by most recent activity and persist in localStorage.
 
 ## File Attachments
 
