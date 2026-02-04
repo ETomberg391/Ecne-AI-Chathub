@@ -1,0 +1,12 @@
+{
+  "name": "ecne-ai-chathub",
+  "version": "1.0.0",
+  "description": "A modular, airgap-friendly AI chat application with support for multiple LLM backends, document parsing, OCR, and text-to-speech.\r <img width=\"2717\" height=\"1587\" alt=\"image\" src=\"https://github.com/user-attachments/assets/dea4a782-f606-4d12-bfca-3110743c253b\" />",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

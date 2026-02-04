@@ -5,6 +5,10 @@
 
 const SETTINGS_KEY = 'chatHubSettings';
 const CHAT_HISTORY_KEY = 'chatHubHistory';
+const SESSIONS_KEY = 'chatHubSessions';
+const CURRENT_SESSION_KEY = 'chatHubCurrentSession';
+// New Key for OpenRouter Models
+const OPENROUTER_MODELS_KEY = 'chatHubOpenRouterModels';
 
 /**
  * Save settings to localStorage
@@ -30,7 +34,7 @@ export function loadSettings(defaultSettings) {
             const parsed = JSON.parse(saved);
             // Merge with defaults, preserving nested objects
             const merged = { ...defaultSettings, ...parsed };
-            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio']) {
+            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter']) {
                 if (parsed[key]) {
                     merged[key] = { ...defaultSettings[key], ...parsed[key] };
                 }
@@ -49,10 +53,7 @@ export function loadSettings(defaultSettings) {
  */
 export function saveChatHistory(messages) {
     try {
-        // Limit history to prevent OOM issues
-        const maxMessages = 100;
-        const limitedMessages = messages.slice(-maxMessages);
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(limitedMessages));
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
     } catch (e) {
         console.error('Failed to save chat history:', e);
     }
@@ -65,13 +66,11 @@ export function saveChatHistory(messages) {
 export function loadChatHistory() {
     try {
         const saved = localStorage.getItem(CHAT_HISTORY_KEY);
-        if (saved) {
-            return JSON.parse(saved);
-        }
+        return saved ? JSON.parse(saved) : [];
     } catch (e) {
         console.error('Failed to load chat history:', e);
+        return [];
     }
-    return [];
 }
 
 /**
@@ -85,113 +84,107 @@ export function clearChatHistory() {
     }
 }
 
-// Session Management
-const SESSIONS_KEY = 'chatHubSessions';
-const CURRENT_SESSION_KEY = 'chatHubCurrentSession';
+// --- NEW FUNCTIONS FOR OPENROUTER MODELS ---
 
 /**
- * Generate a unique session ID
- * @returns {string} UUID string
+ * Save OpenRouter models list to localStorage
+ * @param {Array} models - Array of model ID strings
  */
-function generateSessionId() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
-/**
- * Generate a title from first message
- * @param {Array} messages - Array of messages
- * @returns {string} Generated title
- */
-function generateSessionTitle(messages) {
-    const firstUserMessage = messages.find(m => m.role === 'user');
-    if (firstUserMessage) {
-        const text = firstUserMessage.content.replace(/\n/g, ' ').slice(0, 40);
-        return text.length > 40 ? text + '...' : text || 'New Chat';
+export function saveOpenRouterModels(models) {
+    try {
+        localStorage.setItem(OPENROUTER_MODELS_KEY, JSON.stringify(models));
+    } catch (e) {
+        console.error('Failed to save OpenRouter models:', e);
     }
-    return 'New Chat';
 }
 
 /**
- * Create a new session
+ * Load OpenRouter models list from localStorage
+ * @returns {Array} Array of model ID strings or null
+ */
+export function loadOpenRouterModels() {
+    try {
+        const saved = localStorage.getItem(OPENROUTER_MODELS_KEY);
+        return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+        console.error('Failed to load OpenRouter models:', e);
+        return null;
+    }
+}
+
+// --- SESSION MANAGEMENT ---
+
+/**
+ * Generate a title for a session based on the first user message
+ * @param {Array} messages - Session messages
+ * @returns {string} Session title
+ */
+export function generateSessionTitle(messages) {
+    const firstUserMsg = messages.find(m => m.role === 'user');
+    if (!firstUserMsg) return 'New Chat';
+    
+    let title = firstUserMsg.content.trim();
+    if (title.length > 30) {
+        title = title.substring(0, 30) + '...';
+    }
+    return title;
+}
+
+/**
+ * Create a new session structure
  * @param {Array} messages - Initial messages (optional)
  * @returns {Object} New session object
  */
 export function createSession(messages = []) {
-    const now = Date.now();
     return {
-        id: generateSessionId(),
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         title: generateSessionTitle(messages),
-        createdAt: now,
-        updatedAt: now,
-        messages: messages,
-        metadata: {
-            messageCount: messages.length,
-            hasImages: messages.some(m => m.attachments?.some(a => a.type === 'image')),
-            previewText: messages[0]?.content?.slice(0, 100) || ''
-        }
+        updatedAt: Date.now(),
+        messages: messages
     };
 }
 
 /**
- * Save all sessions to localStorage
+ * Save all sessions
  * @param {Array} sessions - Array of session objects
  */
 export function saveSessions(sessions) {
     try {
-        // Keep only last 50 sessions to prevent storage issues
-        const limitedSessions = sessions.slice(-50);
-        localStorage.setItem(SESSIONS_KEY, JSON.stringify(limitedSessions));
+        localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     } catch (e) {
         console.error('Failed to save sessions:', e);
     }
 }
 
 /**
- * Load all sessions from localStorage
+ * Load all sessions
  * @returns {Array} Array of session objects
  */
 export function loadSessions() {
     try {
         const saved = localStorage.getItem(SESSIONS_KEY);
-        if (saved) {
-            return JSON.parse(saved);
-        }
+        return saved ? JSON.parse(saved) : [];
     } catch (e) {
         console.error('Failed to load sessions:', e);
+        return [];
     }
-    return [];
 }
 
 /**
- * Update a session
+ * Update a specific session
  * @param {Array} sessions - All sessions array
- * @param {string} sessionId - Session ID to update
- * @param {Object} updates - Updates to apply
+ * @param {string} sessionId - ID of session to update
+ * @param {Object} updates - Object containing properties to update
  * @returns {Array} Updated sessions array
  */
 export function updateSession(sessions, sessionId, updates) {
     const index = sessions.findIndex(s => s.id === sessionId);
     if (index === -1) return sessions;
     
-    const session = sessions[index];
-    const updatedSession = {
-        ...session,
-        ...updates,
-        updatedAt: Date.now()
-    };
+    const updatedSession = { ...sessions[index], ...updates, updatedAt: Date.now() };
     
-    // Update metadata if messages changed
+    // Auto-update title if it's "New Chat" and we have messages
     if (updates.messages) {
-        updatedSession.metadata = {
-            messageCount: updates.messages.length,
-            hasImages: updates.messages.some(m => m.attachments?.some(a => a.type === 'image')),
-            previewText: updates.messages[0]?.content?.slice(0, 100) || ''
-        };
-        // Update title if it's still the default and we have messages
         if (updatedSession.title === 'New Chat' && updates.messages.length > 0) {
             updatedSession.title = generateSessionTitle(updates.messages);
         }
@@ -240,9 +233,9 @@ export function loadCurrentSessionId() {
 /**
  * Get session by ID
  * @param {Array} sessions - All sessions array
- * @param {string} sessionId - Session ID
- * @returns {Object|null} Session object or null
+ * @param {string} sessionId - Session ID to find
+ * @returns {Object|undefined} Session object
  */
 export function getSessionById(sessions, sessionId) {
-    return sessions.find(s => s.id === sessionId) || null;
+    return sessions.find(s => s.id === sessionId);
 }

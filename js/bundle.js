@@ -150,11 +150,11 @@ class OpenAIAdapter extends BaseAdapter {
         this.apiKey = config.apiKey;
         this.model = config.model;
         this.systemPrompt = config.systemPrompt || 'You are a helpful assistant.';
-        this.temperature = config.temperature ?? 0.7;
-        this.maxTokens = config.maxTokens ?? 4096;
-        this.topP = config.topP ?? 1.0;
-        this.presencePenalty = config.presencePenalty ?? 0;
-        this.frequencyPenalty = config.frequencyPenalty ?? 0;
+        this.temperature = Number(config.temperature) ?? 0.7;
+        this.maxTokens = Number(config.maxTokens) ?? 4096;
+        this.topP = Number(config.topP) ?? 1.0;
+        this.presencePenalty = Number(config.presencePenalty) ?? 0;
+        this.frequencyPenalty = Number(config.frequencyPenalty) ?? 0;
         this.images = config.images || [];
     }
 
@@ -273,12 +273,12 @@ class OllamaAdapter extends BaseAdapter {
         this.host = config.host || 'http://localhost:11434';
         this.model = config.model || 'llama3';
         this.systemPrompt = config.systemPrompt || 'You are a helpful assistant.';
-        this.temperature = config.temperature ?? 0.7;
-        this.maxTokens = config.maxTokens ?? 4096;
-        this.topP = config.topP ?? 1.0;
-        this.numCtx = config.numCtx || 4096;
-        this.repeatPenalty = config.repeatPenalty ?? 1.1;
-        this.repeatLastN = config.repeatLastN ?? 64;
+        this.temperature = Number(config.temperature) ?? 0.7;
+        this.maxTokens = Number(config.maxTokens) ?? 4096;
+        this.topP = Number(config.topP) ?? 1.0;
+        this.numCtx = Number(config.numCtx) || 4096;
+        this.repeatPenalty = Number(config.repeatPenalty) ?? 1.1;
+        this.repeatLastN = Number(config.repeatLastN) ?? 64;
         this.images = config.images || [];
     }
 
@@ -378,10 +378,10 @@ class ClaudeAdapter extends BaseAdapter {
         this.apiKey = config.apiKey;
         this.model = config.model;
         this.systemPrompt = config.systemPrompt || 'You are a helpful assistant.';
-        this.temperature = config.temperature ?? 0.7;
-        this.maxTokens = config.maxTokens ?? 4096;
-        this.topP = config.topP ?? 1.0;
-        this.topK = config.topK ?? 40;
+        this.temperature = Number(config.temperature) ?? 0.7;
+        this.maxTokens = Number(config.maxTokens) ?? 4096;
+        this.topP = Number(config.topP) ?? 1.0;
+        this.topK = Number(config.topK) ?? 40;
         this.images = config.images || [];
     }
 
@@ -508,6 +508,76 @@ class LMStudioAdapter extends OpenAIAdapter {
     }
 }
 
+class OpenRouterAdapter extends OpenAIAdapter {
+    constructor(config) {
+        super(config);
+        this.baseUrl = config.baseUrl || 'https://openrouter.ai/api/v1';
+        this.apiKey = config.apiKey;
+        this.model = config.model;
+        this.systemPrompt = config.systemPrompt || 'You are a helpful assistant.';
+        this.temperature = Number(config.temperature) ?? 0.7;
+        this.maxTokens = Number(config.maxTokens) ?? 4096;
+        this.topP = Number(config.topP) ?? 1.0;
+        this.presencePenalty = Number(config.presencePenalty) ?? 0;
+        this.frequencyPenalty = Number(config.frequencyPenalty) ?? 0;
+        this.providerRouting = config.providerRouting || null;
+        this.enablePromptCaching = config.enablePromptCaching || false;
+        this.userTracking = config.userTracking || null;
+    }
+
+    getHeaders() {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+            'HTTP-Referer': window.location.origin || 'https://localhost',
+            'X-Title': 'AI Chat Hub'
+        };
+        
+        if (this.providerRouting) {
+            headers['OpenRouter-Provider-Routing'] = this.providerRouting;
+        }
+        
+        return headers;
+    }
+
+    buildRequestBody(messages, stream = false) {
+        const body = super.buildRequestBody(messages, stream);
+        
+        if (this.userTracking) {
+            body.user = this.userTracking;
+        }
+        
+        return body;
+    }
+
+    async handleError(response) {
+        const data = await response.json().catch(() => ({}));
+        
+        if (response.status === 401) {
+            throw new Error('Invalid OpenRouter API key. Please check your settings.');
+        }
+        if (response.status === 429) {
+            throw new Error('OpenRouter rate limit exceeded. Please try again later.');
+        }
+        if (response.status === 402) {
+            throw new Error('OpenRouter account balance insufficient. Please add credits.');
+        }
+        
+        // Provide detailed error message from OpenRouter
+        if (data.error?.message) {
+            throw new Error(`OpenRouter error: ${data.error.message}`);
+        }
+        if (data.message) {
+            throw new Error(`OpenRouter error: ${data.message}`);
+        }
+        if (data.error) {
+            throw new Error(`OpenRouter error: ${typeof data.error === 'string' ? data.error : JSON.stringify(data.error)}`);
+        }
+        
+        await super.handleError(response);
+    }
+}
+
 // Adapter Factory
 function createAdapter(backend, config) {
     switch (backend) {
@@ -521,6 +591,8 @@ function createAdapter(backend, config) {
             return new ClaudeAdapter(config);
         case 'lmstudio':
             return new LMStudioAdapter(config);
+        case 'openrouter':
+            return new OpenRouterAdapter(config);
         default:
             throw new Error(`Unknown backend: ${backend}`);
     }
@@ -532,7 +604,8 @@ function getBackendLabel(backend) {
         cerebras: 'Cerebras',
         ollama: 'Ollama',
         claude: 'Claude',
-        lmstudio: 'LM Studio'
+        lmstudio: 'LM Studio',
+        openrouter: 'OpenRouter'
     };
     return labels[backend] || 'Unknown';
 }
@@ -670,6 +743,7 @@ window.copyCode = copyCode;
 
 const SETTINGS_KEY = 'chatHubSettings';
 const CHAT_HISTORY_KEY = 'chatHubHistory';
+const OPENROUTER_MODELS_KEY = 'chatHubOpenRouterModels';
 const MAX_MESSAGES_IN_MEMORY = 50;
 
 function saveSettings(settings) {
@@ -686,7 +760,7 @@ function loadSettings(defaultSettings) {
         if (saved) {
             const parsed = JSON.parse(saved);
             const merged = { ...defaultSettings, ...parsed };
-            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio']) {
+            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter']) {
                 if (parsed[key]) {
                     merged[key] = { ...defaultSettings[key], ...parsed[key] };
                 }
@@ -1166,6 +1240,17 @@ const defaultSettings = {
         maxTokens: 4096,
         presencePenalty: 0,
         frequencyPenalty: 0
+    },
+    openrouter: {
+        apiKey: '',
+        model: 'anthropic/claude-sonnet-4.5',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        maxTokens: 4096,
+        presencePenalty: 0,
+        frequencyPenalty: 0,
+        providerRouting: '',
+        enablePromptCaching: false,
+        userTracking: ''
     }
 };
 
@@ -1220,6 +1305,11 @@ Vue.createApp({
         const renameInput = Vue.ref(null);
         const sessionToRename = Vue.ref(null);
         let autoSaveTimeout = null;
+        const isLoadingModels = Vue.ref(false);
+        const openRouterModels = Vue.ref([]);
+        const modelSearchQuery = Vue.ref('');
+        const showModelDropdown = Vue.ref(false);
+        const modelSearchInput = Vue.ref(null);
         
         // File handling
         const attachments = Vue.ref([]);
@@ -1250,6 +1340,16 @@ Vue.createApp({
 
         const sortedSessions = Vue.computed(() => {
             return [...sessions.value].sort((a, b) => b.updatedAt - a.updatedAt);
+        });
+
+        const filteredOpenRouterModels = Vue.computed(() => {
+            if (!modelSearchQuery.value.trim()) {
+                return openRouterModels.value;
+            }
+            const query = modelSearchQuery.value.toLowerCase();
+            return openRouterModels.value.filter(model =>
+                model.toLowerCase().includes(query)
+            );
         });
 
         const scrollToBottom = () => {
@@ -1286,7 +1386,7 @@ Vue.createApp({
                 maxTokens: backendSettings.maxTokens != null ? backendSettings.maxTokens : settings.value.maxTokens
             };
             
-            if (backend === 'openai' || backend === 'cerebras' || backend === 'lmstudio') {
+            if (backend === 'openai' || backend === 'cerebras' || backend === 'lmstudio' || backend === 'openrouter') {
                 config.presencePenalty = backendSettings.presencePenalty != null ? backendSettings.presencePenalty : 0;
                 config.frequencyPenalty = backendSettings.frequencyPenalty != null ? backendSettings.frequencyPenalty : 0;
             }
@@ -1299,6 +1399,11 @@ Vue.createApp({
                 config.numCtx = backendSettings.numCtx || 4096;
                 config.repeatPenalty = backendSettings.repeatPenalty != null ? backendSettings.repeatPenalty : 1.1;
                 config.repeatLastN = backendSettings.repeatLastN != null ? backendSettings.repeatLastN : 64;
+            }
+            
+            if (backend === 'openrouter') {
+                config.enablePromptCaching = backendSettings.enablePromptCaching || false;
+                config.userTracking = backendSettings.userTracking || null;
             }
             
             return { ...backendSettings, ...config };
@@ -1874,6 +1979,94 @@ Vue.createApp({
             }
         };
 
+        // Fetch available models from OpenRouter API
+        const fetchOpenRouterModels = async () => {
+            if (!settings.value.openrouter.apiKey) {
+                alert('Please enter your OpenRouter API key first.');
+                return;
+            }
+            
+            isLoadingModels.value = true;
+            connectionError.value = '';
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/models', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${settings.value.openrouter.apiKey}`,
+                        'HTTP-Referer': window.location.origin || 'https://localhost',
+                        'X-Title': 'AI Chat Hub'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error?.message || `Failed to fetch models: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.data && Array.isArray(data.data)) {
+                    const fetchedModels = data.data
+                        .map(m => m.id)
+                        .filter(id => id)
+                        .sort();
+                    
+                    // Update the reactive variable
+                    openRouterModels.value = fetchedModels;
+                    
+                    // SAVE TO LOCAL STORAGE
+                    localStorage.setItem(OPENROUTER_MODELS_KEY, JSON.stringify(fetchedModels));
+                    
+                    // Auto-select first model if none or default is set
+                    if (!settings.value.openrouter.model || settings.value.openrouter.model === 'anthropic/claude-sonnet-4.5') {
+                        if (fetchedModels.length > 0) {
+                            settings.value.openrouter.model = fetchedModels[0];
+                        }
+                    }
+                    
+                    saveSettings(settings.value);
+                    
+                    alert(`Successfully fetched ${fetchedModels.length} models!`);
+                } else {
+                    throw new Error('Invalid response format from OpenRouter');
+                }
+            } catch (error) {
+                console.error('Failed to fetch OpenRouter models:', error);
+                connectionError.value = `Failed to fetch models: ${error.message}`;
+                alert(`Error fetching models: ${error.message}`);
+            } finally {
+                isLoadingModels.value = false;
+            }
+        };
+
+        // OpenRouter Model Dropdown Methods
+        const toggleModelDropdown = () => {
+            showModelDropdown.value = !showModelDropdown.value;
+            if (showModelDropdown.value) {
+                Vue.nextTick(() => {
+                    if (modelSearchInput.value) modelSearchInput.value.focus();
+                });
+            }
+        };
+
+        const closeModelDropdown = () => {
+            showModelDropdown.value = false;
+        };
+
+        const selectModel = (modelId) => {
+            settings.value.openrouter.model = modelId;
+            closeModelDropdown();
+            saveSettingsHandler();
+        };
+
+        const enableCustomModel = () => {
+            if (modelSearchQuery.value.trim()) {
+                settings.value.openrouter.model = modelSearchQuery.value.trim();
+                closeModelDropdown();
+                saveSettingsHandler();
+            }
+        };
+
         // Theme handling
         const applyTheme = (theme) => {
             document.documentElement.setAttribute('data-theme', theme);
@@ -2126,6 +2319,16 @@ Vue.createApp({
                 speechSynthesis.onvoiceschanged = loadVoices;
             }
             
+            // Load OpenRouter models from localStorage
+            const savedModels = localStorage.getItem(OPENROUTER_MODELS_KEY);
+            if (savedModels) {
+                try {
+                    openRouterModels.value = JSON.parse(savedModels);
+                } catch (e) {
+                    console.error("Failed to parse saved models", e);
+                }
+            }
+            
             // Load sessions
             sessions.value = loadSessions();
             const savedSessionId = loadCurrentSessionId();
@@ -2202,6 +2405,17 @@ Vue.createApp({
             clearChat,
             saveSettings: saveSettingsHandler,
             testConnection,
+            fetchOpenRouterModels,
+            isLoadingModels,
+            openRouterModels,
+            filteredOpenRouterModels,
+            modelSearchQuery,
+            showModelDropdown,
+            modelSearchInput,
+            toggleModelDropdown,
+            closeModelDropdown,
+            selectModel,
+            enableCustomModel,
             testTTS,
             loadKokoroTTS,
             onTTSEngineChange,
