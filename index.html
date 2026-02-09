@@ -349,14 +349,13 @@
                         
                         <textarea
                             v-model="userInput"
-                            @keydown.enter.prevent="handleEnter"
+                            @keydown.enter="handleEnter"
                             @paste="handlePaste"
                             placeholder="Type your message... (Enter to send, Shift+Enter for new line, or drop files here)"
                             class="flex-1 bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             rows="1"
                             @input="autoResize"
                             ref="textarea"
-                            :disabled="isLoading"
                         ></textarea>
                         <button
                             @click="sendMessage"
@@ -434,6 +433,7 @@
                                 <option value="claude">Claude</option>
                                 <option value="lmstudio">LM Studio</option>
                                 <option value="openrouter">OpenRouter</option>
+                                <option value="localopenai">Local OpenAI</option>
                             </select>
                         </div>
 
@@ -722,6 +722,47 @@
                                 <p class="text-xs text-gray-400 mt-2">
                                     Requires API key. Fetches 100+ models with pricing and capabilities.
                                 </p>
+                            </div>
+                        </div>
+    
+                        <!-- Local OpenAI Settings -->
+                        <div v-if="settings.backend === 'localopenai' && settings.localopenai" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Base URL</label>
+                                <input type="text" v-model="settings.localopenai.baseUrl" placeholder="http://localhost:11434/v1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <p class="text-xs text-gray-400 mt-1">URL of your OpenAI-compatible local API (e.g., LM Studio, vLLM, Ollama with OpenAI compat)</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">API Key (optional)</label>
+                                <input type="password" v-model="settings.localopenai.apiKey" placeholder="sk-..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <p class="text-xs text-gray-400 mt-1">Leave blank if your local API doesn't require authentication</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Model Alias</label>
+                                <input type="text" v-model="settings.localopenai.modelAlias" placeholder="e.g., llama3, codellama, gpt-4o-mini..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <p class="text-xs text-gray-400 mt-1">Name of the model as it appears in your local API</p>
+                            </div>
+                            <!-- Local OpenAI-specific Parameters -->
+                            <div class="space-y-3 pt-2 border-t border-gray-700/50">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">
+                                        Max Tokens: {{ settings.localopenai.maxTokens > 0 ? settings.localopenai.maxTokens : 'Unlimited (0)' }}
+                                    </label>
+                                    <input type="range" v-model="settings.localopenai.maxTokens" min="0" :max="getMaxTokensLimit('localopenai')" :step="getTokenStep('localopenai')" class="w-full accent-purple-500">
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Set to 0 for unlimited. Range: 0 - {{ formatTokens(getMaxTokensLimit('localopenai')) }} tokens
+                                    </p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Presence Penalty: {{ settings.localopenai.presencePenalty }}</label>
+                                        <input type="range" v-model="settings.localopenai.presencePenalty" min="-2" max="2" step="0.1" class="w-full accent-purple-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Frequency Penalty: {{ settings.localopenai.frequencyPenalty }}</label>
+                                        <input type="range" v-model="settings.localopenai.frequencyPenalty" min="-2" max="2" step="0.1" class="w-full accent-purple-500">
+                                    </div>
+                                </div>
                             </div>
                         </div>
     

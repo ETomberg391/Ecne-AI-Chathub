@@ -34,9 +34,13 @@ export function loadSettings(defaultSettings) {
             const parsed = JSON.parse(saved);
             // Merge with defaults, preserving nested objects
             const merged = { ...defaultSettings, ...parsed };
-            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter']) {
+            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter', 'localopenai']) {
+                // Always merge backend settings to ensure all properties are present
                 if (parsed[key]) {
                     merged[key] = { ...defaultSettings[key], ...parsed[key] };
+                } else {
+                    // If not in saved settings, use defaults
+                    merged[key] = { ...defaultSettings[key] };
                 }
             }
             return merged;

@@ -9,40 +9,63 @@
  * @returns {string} HTML string
  */
 export function renderMarkdown(content) {
-    if (!content || typeof content !== 'string') {
-        return '<p>' + (content || '') + '</p>';
+    // Handle non-string content properly to avoid "[object Object]"
+    if (!content) {
+        return '<p></p>';
+    }
+    
+    // Convert content to string if it's an object or other type
+    let contentStr;
+    if (typeof content === 'string') {
+        contentStr = content;
+    } else if (typeof content === 'object') {
+        contentStr = content.text || content.content || JSON.stringify(content);
+    } else {
+        contentStr = String(content);
     }
 
     try {
         const renderer = new marked.Renderer();
         
-        // Handle marked v5+ API which passes an object as first parameter
-        renderer.code = function(codeOrObj, language, escaped) {
+        // ONLY override the code block renderer for syntax highlighting
+        // Let marked handle everything else with defaults
+        renderer.code = function(token) {
+            // marked v15+ passes a token object
             let code, lang;
             
-            // Check if first parameter is an object (marked v5+)
-            if (typeof codeOrObj === 'object' && codeOrObj !== null) {
-                code = codeOrObj.text || '';
-                lang = codeOrObj.lang || '';
+            if (token && typeof token === 'object') {
+                code = token.text || '';
+                lang = token.lang || '';
             } else {
-                // marked v4 API
-                code = codeOrObj || '';
-                lang = language || '';
+                // Fallback for old API
+                code = arguments[0] || '';
+                lang = arguments[1] || '';
             }
             
-            const codeStr = typeof code === 'string' ? code : String(code || '');
-            const langStr = typeof lang === 'string' ? lang : 'plaintext';
+            const codeStr = String(code || '');
+            const langStr = String(lang || '');
             const displayLang = langStr || 'code';
             
             try {
-                const highlighted = hljs.highlight(codeStr, { language: langStr }).value;
-                return `<div class="code-block-wrapper">
-                    <div class="code-header">
-                        <span class="code-language">${displayLang}</span>
-                        <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
-                    </div>
-                    <pre><code class="hljs language-${langStr}">${highlighted}</code></pre>
-                </div>`;
+                if (langStr && langStr !== 'plaintext') {
+                    const highlighted = hljs.highlight(codeStr, { language: langStr }).value;
+                    return `<div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span class="code-language">${displayLang}</span>
+                            <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code class="hljs language-${langStr}">${highlighted}</code></pre>
+                    </div>`;
+                } else {
+                    const highlighted = hljs.highlightAuto(codeStr).value;
+                    return `<div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span class="code-language">${displayLang}</span>
+                            <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code class="hljs">${highlighted}</code></pre>
+                    </div>`;
+                }
             } catch (e) {
                 const escaped = codeStr.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
                 return `<div class="code-block-wrapper">
@@ -50,42 +73,24 @@ export function renderMarkdown(content) {
                         <span class="code-language">${displayLang}</span>
                         <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
                     </div>
-                    <pre><code class="language-${langStr}">${escaped}</code></pre>
+                    <pre><code>${escaped}</code></pre>
                 </div>`;
             }
-        };
-
-        renderer.blockquote = function(text) {
-            // Handle both string and object inputs from marked.js
-            const textStr = typeof text === 'string' ? text : (text?.text || String(text || ''));
-            return `<blockquote>${textStr}</blockquote>`;
-        };
-
-        renderer.heading = function(text, level, raw) {
-            const textStr = typeof text === 'string' ? text : (text?.text || String(text || ''));
-            return `<h${level}>${textStr}</h${level}>`;
-        };
-
-        renderer.hr = function() {
-            return '<hr>';
-        };
-
-        renderer.table = function(header, body) {
-            const headerStr = typeof header === 'string' ? header : String(header || '');
-            const bodyStr = typeof body === 'string' ? body : String(body || '');
-            return `<table><thead>${headerStr}</thead><tbody>${bodyStr}</tbody></table>`;
         };
 
         marked.setOptions({ 
             renderer,
             breaks: true,
-            gfm: true
+            gfm: true,
+            headerIds: false,
+            mangle: false
         });
         
-        return marked.parse(content);
+        return marked.parse(contentStr);
     } catch (error) {
         console.error('Markdown render error:', error);
-        return `<p>${content.replace(/</g, '<').replace(/>/g, '>')}</p>`;
+        const safeContent = contentStr.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+        return `<p>${safeContent}</p>`;
     }
 }
 

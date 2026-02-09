@@ -9,10 +9,11 @@ import { OllamaAdapter } from './ollamaAdapter.js';
 import { ClaudeAdapter } from './claudeAdapter.js';
 import { LMStudioAdapter } from './lmstudioAdapter.js';
 import { OpenRouterAdapter } from './openrouterAdapter.js';
+import { LocalOpenAIAdapter } from './localOpenaiAdapter.js';
 
 /**
  * Create an adapter based on backend type
- * @param {string} backend - Backend type (openai, cerebras, ollama, claude, lmstudio)
+ * @param {string} backend - Backend type (openai, cerebras, ollama, claude, lmstudio, localopenai)
  * @param {Object} config - Configuration object
  * @returns {BaseAdapter}
  */
@@ -30,6 +31,8 @@ export function createAdapter(backend, config) {
             return new LMStudioAdapter(config);
         case 'openrouter':
             return new OpenRouterAdapter(config);
+        case 'localopenai':
+            return new LocalOpenAIAdapter(config);
         default:
             throw new Error(`Unknown backend: ${backend}`);
     }
@@ -40,7 +43,7 @@ export function createAdapter(backend, config) {
  * @returns {Array<string>}
  */
 export function getAvailableBackends() {
-    return ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter'];
+    return ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter', 'localopenai'];
 }
 
 /**
@@ -55,7 +58,8 @@ export function getBackendLabel(backend) {
         ollama: 'Ollama',
         claude: 'Claude',
         lmstudio: 'LM Studio',
-        openrouter: 'OpenRouter'
+        openrouter: 'OpenRouter',
+        localopenai: 'Local OpenAI'
     };
     return labels[backend] || 'Unknown';
 }

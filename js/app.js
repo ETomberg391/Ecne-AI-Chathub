@@ -78,9 +78,17 @@ const defaultSettings = {
         maxTokens: 4096,
         presencePenalty: 0,
         frequencyPenalty: 0,
-        providerRouting: '', 
-        enablePromptCaching: false, 
-        userTracking: '' 
+        providerRouting: '',
+        enablePromptCaching: false,
+        userTracking: ''
+    },
+    localopenai: {
+        baseUrl: 'http://localhost:11434/v1',
+        apiKey: '',
+        modelAlias: '',
+        maxTokens: 4096,
+        presencePenalty: 0,
+        frequencyPenalty: 0
     }
 };
 
@@ -171,6 +179,21 @@ const modelContextSizes = {
         // Cohere models
         'cohere/command-r': 128000,
         'cohere/command-r-plus': 128000
+    },
+    localopenai: {
+        // Default context for local models (adjust as needed)
+        'default': 8192,
+        'llama-3': 8192,
+        'llama-3.1': 8192,
+        'llama-3.2': 8192,
+        'llama-3.3': 8192,
+        'mistral': 32768,
+        'mixtral': 32768,
+        'gpt': 128000,
+        'qwen': 32768,
+        'codellama': 16384,
+        'phi': 16384,
+        'yi': 16384
     }
 };
 
@@ -181,7 +204,8 @@ const providerMaxOutputTokens = {
     claude: 8192,
     ollama: 8192,
     lmstudio: 8192,
-    openrouter: 16384
+    openrouter: 16384,
+    localopenai: 16384
 };
 
 // Memory Limit
@@ -259,58 +283,73 @@ createApp({
 
         const autoResize = (e) => {
             e.target.style.height = 'auto';
-            e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+            e.target.style.height = Math.min(e.target.scrollHeight, 300) + 'px';
         };
 
         const handleEnter = (e) => {
             if (e.shiftKey) {
+                // Allow default behavior (new line) for Shift+Enter
                 return;
             }
+            // Prevent default and send for plain Enter (only if not already loading)
             e.preventDefault();
-            sendMessage();
+            if (!isLoading.value) {
+                sendMessage();
+            }
         };
 
         const getAdapterConfig = () => {
             const backend = settings.value.backend;
-            const backendSettings = settings.value[backend];
+            let backendSettings = settings.value[backend];
+            
+            // Initialize backend-specific settings if they don't exist (e.g., when switching to localopenai)
+            if (!backendSettings) {
+                console.log(`Initializing ${backend} settings`);
+                backendSettings = defaultSettings[backend] || {};
+                settings.value[backend] = { ...defaultSettings[backend] };
+            }
             
             const config = {
                 systemPrompt: settings.value.systemPrompt,
                 temperature: settings.value.temperature,
                 topP: settings.value.topP,
-                maxTokens: backendSettings.maxTokens || settings.value.maxTokens
+                maxTokens: (backendSettings && backendSettings.maxTokens) ? backendSettings.maxTokens : settings.value.maxTokens
             };
             
-            if (backend === 'openai' || backend === 'cerebras' || backend === 'lmstudio' || backend === 'openrouter') {
-                config.presencePenalty = backendSettings.presencePenalty ?? 0;
-                config.frequencyPenalty = backendSettings.frequencyPenalty ?? 0;
+            // Access settings with fallbacks to ensure no undefined errors
+            if (backend === 'openai' || backend === 'cerebras' || backend === 'lmstudio' || backend === 'openrouter' || backend === 'localopenai') {
+                config.presencePenalty = backendSettings?.presencePenalty ?? 0;
+                config.frequencyPenalty = backendSettings?.frequencyPenalty ?? 0;
             }
             
             if (backend === 'claude') {
-                config.topK = backendSettings.topK ?? 40;
+                config.topK = backendSettings?.topK ?? 40;
             }
             
             if (backend === 'ollama') {
-                config.numCtx = backendSettings.numCtx || 4096;
-                config.repeatPenalty = backendSettings.repeatPenalty ?? 1.1;
-                config.repeatLastN = backendSettings.repeatLastN ?? 64;
+                config.numCtx = backendSettings?.numCtx || 4096;
+                config.repeatPenalty = backendSettings?.repeatPenalty ?? 1.1;
+                config.repeatLastN = backendSettings?.repeatLastN ?? 64;
             }
             
+            // Access settings with fallbacks to ensure no undefined errors
             if (backend === 'openrouter') {
-                if (backendSettings.providerRouting) {
+                if (backendSettings?.providerRouting) {
                     config.providerRouting = backendSettings.providerRouting;
                 }
-                config.enablePromptCaching = backendSettings.enablePromptCaching || false;
-                config.userTracking = backendSettings.userTracking || null;
+                config.enablePromptCaching = backendSettings?.enablePromptCaching || false;
+                config.userTracking = backendSettings?.userTracking || null;
             }
             
-            return { ...backendSettings, ...config };
+            return { ...(backendSettings || {}), ...config };
         };
 
         // Helper: Get model context window size
         const getModelContext = (backend) => {
-            const model = settings.value[backend]?.model;
-            const contextSize = modelContextSizes[backend]?.[model] || 'Unknown';
+            const model = backend === 'localopenai'
+                ? settings.value[backend]?.modelAlias
+                : settings.value[backend]?.model;
+            const contextSize = modelContextSizes[backend]?.[model] || modelContextSizes[backend]?.['default'] || 'Unknown';
             return typeof contextSize === 'number' ? contextSize.toLocaleString() : contextSize;
         };
 
@@ -331,6 +370,10 @@ createApp({
                 if (model.includes('o1') || model.includes('o3')) return 32768;
                 if (model.includes('anthropic/claude')) return 8192;
                 return providerMaxOutputTokens.openrouter;
+            }
+            
+            if (backend === 'localopenai') {
+                return providerMaxOutputTokens.localopenai;
             }
             return 8192;
         };
@@ -443,6 +486,13 @@ createApp({
 
         const loadSettingsHandler = () => {
             settings.value = loadSettings(defaultSettings);
+            // Ensure all backend-specific settings exist immediately after loading
+            for (const backend of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter', 'localopenai']) {
+                if (!settings.value[backend]) {
+                    console.log(`Initializing missing backend settings in loadSettingsHandler: ${backend}`);
+                    settings.value[backend] = { ...defaultSettings[backend] };
+                }
+            }
         };
 
         const testConnection = async () => {
@@ -570,12 +620,13 @@ createApp({
             const visionModels = {
                 openai: ['gpt-4o', 'gpt-4-turbo', 'gpt-4o-mini'],
                 claude: ['claude-3', 'claude-3-5'],
-                ollama: ['llava', 'bakllava', 'moondream']
+                ollama: ['llava', 'bakllava', 'moondream'],
+                localopenai: ['gpt-4o', 'gpt-4-turbo', 'gpt-4o-mini', 'llava', 'bakllava', 'moondream']
             };
             
             if (!visionModels[backend]) return false;
             
-            const model = settings.value[backend]?.model || '';
+            const model = settings.value[backend]?.model || settings.value[backend]?.modelAlias || '';
             return visionModels[backend].some(vm => model.toLowerCase().includes(vm.toLowerCase()));
         };
 
@@ -806,6 +857,19 @@ createApp({
         onMounted(() => {
             loadSettingsHandler();
             
+            // Ensure all backend-specific settings exist (for backwards compatibility with new backends)
+            const currentBackend = settings.value.backend;
+            for (const backend of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter', 'localopenai']) {
+                if (!settings.value[backend]) {
+                    console.log(`Initializing missing backend settings: ${backend}`);
+                    settings.value[backend] = { ...defaultSettings[backend] };
+                }
+            }
+            // Force reactivity update for current backend
+            if (currentBackend === 'localopenai' && settings.value.localopenai) {
+                console.log('Local OpenAI settings initialized:', settings.value.localopenai);
+            }
+            
             // LOAD MODELS FROM STORAGE ON STARTUP
             const cachedModels = loadOpenRouterModels();
             if (cachedModels && cachedModels.length > 0) {
@@ -853,6 +917,13 @@ createApp({
         watch(() => settings.value.stream, () => {
             saveSettings(settings.value);
         });
+
+        watch(() => settings.value.backend, () => {
+            // Ensure the backend-specific settings exist
+            if (!settings.value[settings.value.backend]) {
+                settings.value[settings.value.backend] = { ...defaultSettings[settings.value.backend] };
+            }
+        }, { immediate: true });
 
         watch(messages, () => {
             debouncedAutoSave();

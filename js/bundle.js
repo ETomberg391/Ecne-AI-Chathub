@@ -578,6 +578,59 @@ class OpenRouterAdapter extends OpenAIAdapter {
     }
 }
 
+class LocalOpenAIAdapter extends OpenAIAdapter {
+    constructor(config) {
+        super({
+            ...config,
+            baseUrl: config.baseUrl || 'http://localhost:11434/v1',
+            apiKey: config.apiKey || ''
+        });
+        this.modelAlias = config.modelAlias || config.model || 'default';
+    }
+
+    getEndpoint() {
+        return `${this.baseUrl}/chat/completions`;
+    }
+
+    getHeaders() {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (this.apiKey) {
+            headers['Authorization'] = `Bearer ${this.apiKey}`;
+        }
+        return headers;
+    }
+
+    buildRequestBody(messages, stream = false) {
+        const body = {
+            model: this.modelAlias,
+            messages: [{ role: 'system', content: this.systemPrompt }, ...messages],
+            temperature: this.temperature,
+            top_p: this.topP,
+            stream
+        };
+        
+        if (this.maxTokens > 0) {
+            body.max_tokens = this.maxTokens;
+        }
+        
+        if (this.presencePenalty !== 0) {
+            body.presence_penalty = this.presencePenalty;
+        }
+        if (this.frequencyPenalty !== 0) {
+            body.frequency_penalty = this.frequencyPenalty;
+        }
+        
+        return body;
+    }
+
+    async handleError(response) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error?.message || data.error || 'Local OpenAI API error');
+    }
+}
+
 // Adapter Factory
 function createAdapter(backend, config) {
     switch (backend) {
@@ -593,6 +646,8 @@ function createAdapter(backend, config) {
             return new LMStudioAdapter(config);
         case 'openrouter':
             return new OpenRouterAdapter(config);
+        case 'localopenai':
+            return new LocalOpenAIAdapter(config);
         default:
             throw new Error(`Unknown backend: ${backend}`);
     }
@@ -615,37 +670,63 @@ function getBackendLabel(backend) {
 // ============================================
 
 function renderMarkdown(content) {
-    if (!content || typeof content !== 'string') {
-        return '<p>' + (content || '') + '</p>';
+    // Handle non-string content properly to avoid "[object Object]"
+    if (!content) {
+        return '<p></p>';
+    }
+    
+    // Convert content to string if it's an object or other type
+    let contentStr;
+    if (typeof content === 'string') {
+        contentStr = content;
+    } else if (typeof content === 'object') {
+        contentStr = content.text || content.content || JSON.stringify(content);
+    } else {
+        contentStr = String(content);
     }
 
     try {
         const renderer = new marked.Renderer();
         
-        renderer.code = function(codeOrObj, language, escaped) {
+        // ONLY override the code block renderer for syntax highlighting
+        // Let marked handle everything else with defaults
+        renderer.code = function(token) {
+            // marked v15+ passes a token object
             let code, lang;
             
-            if (typeof codeOrObj === 'object' && codeOrObj !== null) {
-                code = codeOrObj.text || '';
-                lang = codeOrObj.lang || '';
+            if (token && typeof token === 'object') {
+                code = token.text || '';
+                lang = token.lang || '';
             } else {
-                code = codeOrObj || '';
-                lang = language || '';
+                // Fallback for old API
+                code = arguments[0] || '';
+                lang = arguments[1] || '';
             }
             
-            const codeStr = typeof code === 'string' ? code : String(code || '');
-            const langStr = typeof lang === 'string' ? lang : 'plaintext';
+            const codeStr = String(code || '');
+            const langStr = String(lang || '');
             const displayLang = langStr || 'code';
             
             try {
-                const highlighted = hljs.highlight(codeStr, { language: langStr }).value;
-                return `<div class="code-block-wrapper">
-                    <div class="code-header">
-                        <span class="code-language">${displayLang}</span>
-                        <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
-                    </div>
-                    <pre><code class="hljs language-${langStr}">${highlighted}</code></pre>
-                </div>`;
+                if (langStr && langStr !== 'plaintext') {
+                    const highlighted = hljs.highlight(codeStr, { language: langStr }).value;
+                    return `<div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span class="code-language">${displayLang}</span>
+                            <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code class="hljs language-${langStr}">${highlighted}</code></pre>
+                    </div>`;
+                } else {
+                    const highlighted = hljs.highlightAuto(codeStr).value;
+                    return `<div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span class="code-language">${displayLang}</span>
+                            <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code class="hljs">${highlighted}</code></pre>
+                    </div>`;
+                }
             } catch (e) {
                 const escaped = codeStr.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
                 return `<div class="code-block-wrapper">
@@ -653,42 +734,24 @@ function renderMarkdown(content) {
                         <span class="code-language">${displayLang}</span>
                         <button class="copy-btn" onclick="window.copyCode(this)">Copy</button>
                     </div>
-                    <pre><code class="language-${langStr}">${escaped}</code></pre>
+                    <pre><code>${escaped}</code></pre>
                 </div>`;
             }
         };
 
-        renderer.blockquote = function(text) {
-            // Handle both string and object inputs from marked.js
-            const textStr = typeof text === 'string' ? text : (text?.text || String(text || ''));
-            return `<blockquote>${textStr}</blockquote>`;
-        };
-
-        renderer.heading = function(text, level, raw) {
-            const textStr = typeof text === 'string' ? text : (text?.text || String(text || ''));
-            return `<h${level}>${textStr}</h${level}>`;
-        };
-
-        renderer.hr = function() {
-            return '<hr>';
-        };
-
-        renderer.table = function(header, body) {
-            const headerStr = typeof header === 'string' ? header : String(header || '');
-            const bodyStr = typeof body === 'string' ? body : String(body || '');
-            return `<table><thead>${headerStr}</thead><tbody>${bodyStr}</tbody></table>`;
-        };
-
-        marked.setOptions({ 
+        marked.setOptions({
             renderer,
             breaks: true,
-            gfm: true
+            gfm: true,
+            headerIds: false,
+            mangle: false
         });
         
-        return marked.parse(content);
+        return marked.parse(contentStr);
     } catch (error) {
         console.error('Markdown render error:', error);
-        return `<p>${content.replace(/</g, '<').replace(/>/g, '>')}</p>`;
+        const safeContent = contentStr.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+        return `<p>${safeContent}</p>`;
     }
 }
 
@@ -760,7 +823,7 @@ function loadSettings(defaultSettings) {
         if (saved) {
             const parsed = JSON.parse(saved);
             const merged = { ...defaultSettings, ...parsed };
-            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter']) {
+            for (const key of ['openai', 'cerebras', 'ollama', 'claude', 'lmstudio', 'openrouter', 'localopenai']) {
                 if (parsed[key]) {
                     merged[key] = { ...defaultSettings[key], ...parsed[key] };
                 }
@@ -1251,6 +1314,14 @@ const defaultSettings = {
         providerRouting: '',
         enablePromptCaching: false,
         userTracking: ''
+    },
+    localopenai: {
+        baseUrl: 'http://localhost:11434/v1',
+        apiKey: '',
+        modelAlias: '',
+        maxTokens: 4096,
+        presencePenalty: 0,
+        frequencyPenalty: 0
     }
 };
 
@@ -1270,6 +1341,12 @@ const modelContextSizes = {
     claude: {
         'claude-3-5-sonnet-20241022': 200000, 'claude-3-5-sonnet-latest': 200000,
         'claude-3-opus-20240229': 200000, 'claude-3-sonnet-20240229': 200000, 'claude-3-haiku-20240307': 200000
+    },
+    localopenai: {
+        'default': 8192,
+        'llama-3': 8192, 'llama-3.1': 8192, 'llama-3.2': 8192, 'llama-3.3': 8192,
+        'mistral': 32768, 'mixtral': 32768, 'gpt': 128000,
+        'qwen': 32768, 'codellama': 16384, 'phi': 16384, 'yi': 16384
     }
 };
 
@@ -1386,7 +1463,7 @@ Vue.createApp({
                 maxTokens: backendSettings.maxTokens != null ? backendSettings.maxTokens : settings.value.maxTokens
             };
             
-            if (backend === 'openai' || backend === 'cerebras' || backend === 'lmstudio' || backend === 'openrouter') {
+            if (backend === 'openai' || backend === 'cerebras' || backend === 'lmstudio' || backend === 'openrouter' || backend === 'localopenai') {
                 config.presencePenalty = backendSettings.presencePenalty != null ? backendSettings.presencePenalty : 0;
                 config.frequencyPenalty = backendSettings.frequencyPenalty != null ? backendSettings.frequencyPenalty : 0;
             }
@@ -1411,8 +1488,10 @@ Vue.createApp({
 
         // Helper: Get model context window size
         const getModelContext = (backend) => {
-            const model = settings.value[backend]?.model;
-            const contextSize = modelContextSizes[backend]?.[model];
+            const model = backend === 'localopenai'
+                ? settings.value[backend]?.modelAlias
+                : settings.value[backend]?.model;
+            const contextSize = modelContextSizes[backend]?.[model] || modelContextSizes[backend]?.['default'];
             return contextSize ? contextSize.toLocaleString() : 'Unknown';
         };
 
@@ -1425,6 +1504,7 @@ Vue.createApp({
                 return 16384;
             }
             if (backend === 'cerebras') return 8192;
+            if (backend === 'localopenai') return 16384;
             return 8192;
         };
 
@@ -1925,12 +2005,15 @@ Vue.createApp({
             const visionModels = {
                 openai: ['gpt-4o', 'gpt-4-turbo', 'gpt-4o-mini'],
                 claude: ['claude-3', 'claude-3-5'],
-                ollama: ['llava', 'bakllava', 'moondream']
+                ollama: ['llava', 'bakllava', 'moondream'],
+                localopenai: ['gpt-4o', 'gpt-4-turbo', 'gpt-4o-mini', 'llava', 'bakllava', 'moondream']
             };
             
             if (!visionModels[backend]) return false;
             
-            const model = settings.value[backend]?.model || '';
+            const model = backend === 'localopenai'
+                ? (settings.value[backend]?.modelAlias || '')
+                : (settings.value[backend]?.model || '');
             return visionModels[backend].some(vm => model.toLowerCase().includes(vm.toLowerCase()));
         };
 
