@@ -1,0 +1,22 @@
+{
+  "name": "AI Chat Hub",
+  "short_name": "ChatHub",
+  "description": "AI Chat Hub - Multi-backend AI chat interface",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "scope": ".",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr"
+}
