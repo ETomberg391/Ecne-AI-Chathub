@@ -428,3 +428,544 @@ body {
 .tab-content.active {
     display: block;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile Sidebar Overlay */
+@media (max-width: 1024px) {
+    /* Sidebar becomes overlay instead of push */
+    #app > aside {
+        position: fixed !important;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 40;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Backdrop when sidebar is open */
+    #app > aside:not(.w-0) ~ .sidebar-backdrop {
+        display: block;
+    }
+}
+
+/* Phone Portrait (up to 640px) */
+@media (max-width: 640px) {
+    /* Reduce base font size for more content */
+    html {
+        font-size: 14px;
+    }
+    
+    /* Compact header - single row layout */
+    header {
+        padding: 0.5rem 0.5rem !important;
+        min-height: 52px;
+        flex-wrap: nowrap !important;
+    }
+    
+    /* Header left section - compact */
+    header > div:first-child {
+        gap: 0.5rem !important;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+    
+    /* Smaller logo/icon in header */
+    header .gradient-bg.w-10.h-10 {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        border-radius: 0.375rem !important;
+        flex-shrink: 0;
+    }
+    
+    header .gradient-bg.w-10.h-10 svg {
+        width: 1rem !important;
+        height: 1rem !important;
+    }
+    
+    /* Compact title - single line, ellipsis */
+    header h1 {
+        font-size: 0.9375rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Title wrapper - prevent wrapping */
+    header > div:first-child > div:last-child {
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    /* Backend label and Vision badge row */
+    header > div:first-child > div:last-child > div {
+        flex-wrap: nowrap;
+        gap: 0.375rem !important;
+    }
+    
+    /* Hide backend label text, keep Vision badge */
+    header .text-xs:not(.text-\[10px\]) {
+        display: none;
+    }
+    
+    /* Smaller Vision badge */
+    header .text-\[10px\] {
+        font-size: 0.625rem !important;
+        padding: 0.125rem 0.375rem !important;
+    }
+    
+    /* Header right section - icon buttons only */
+    header > div:last-child {
+        gap: 0.25rem !important;
+        flex-shrink: 0;
+    }
+    
+    /* All header buttons - icon only, compact */
+    header > div:last-child button {
+        padding: 0.5rem !important;
+        min-width: 36px;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Hide all button text in header */
+    header > div:last-child button span,
+    header > div:last-child button:not(:has(svg)) {
+        display: none !important;
+    }
+    
+    /* Keep only icons visible */
+    header > div:last-child button svg {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        flex-shrink: 0;
+    }
+    
+    /* Stream toggle - icon only on small screens */
+    header .flex.items-center.gap-2.px-3.py-1\.5 {
+        padding: 0.375rem !important;
+        gap: 0 !important;
+        background: transparent !important;
+    }
+    
+    header .flex.items-center.gap-2.px-3.py-1\.5 > span:first-child {
+        display: none;
+    }
+    
+    /* Smaller toggle switch */
+    header .relative.inline-flex.h-5.w-9 {
+        width: 36px;
+        height: 20px;
+    }
+    
+    header .inline-block.h-3.w-3 {
+        width: 14px;
+        height: 14px;
+    }
+    
+    /* Hide Stream toggle on mobile - saves header space */
+    header .flex.items-center.gap-2.px-3.py-1\.5 {
+        display: none !important;
+    }
+    
+    /* Chat area padding - minimal on mobile */
+    main .overflow-y-auto.p-6 {
+        padding: 0.25rem !important;
+    }
+    
+    /* Message bubbles - nearly full width on mobile */
+    main .max-w-3xl {
+        max-width: calc(100vw - 3rem) !important;
+    }
+    
+    /* User messages - stack vertically on mobile */
+    .flex.gap-4.group\/message.justify-end {
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        gap: 0.25rem !important;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+    
+    /* User message bubble - maximum width on mobile */
+    .flex.gap-4.group\/message.justify-end > .max-w-3xl {
+        max-width: calc(100% - 0.5rem) !important;
+        width: auto !important;
+        padding: 0.75rem 0.875rem !important;
+    }
+    
+    /* User avatar - smaller and on top */
+    .flex.gap-4.group\/message.justify-end > .flex-shrink-0.w-10.h-10 {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        order: -1;
+    }
+    
+    /* User avatar icon - smaller */
+    .flex.gap-4.group\/message.justify-end > .flex-shrink-0.w-10.h-10 svg {
+        width: 0.875rem !important;
+        height: 0.875rem !important;
+    }
+    
+    /* Assistant messages - stack vertically on mobile */
+    .flex.gap-4.group\/message.justify-start {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.25rem !important;
+        padding-right: 0.25rem;
+        padding-left: 0.25rem;
+    }
+    
+    /* Assistant message bubble - maximum width on mobile */
+    .flex.gap-4.group\/message.justify-start > .max-w-3xl {
+        max-width: calc(100% - 0.5rem) !important;
+        width: auto !important;
+        padding: 0.75rem 0.875rem !important;
+    }
+    
+    /* Assistant avatar - smaller and on top */
+    .flex.gap-4.group\/message.justify-start > .flex-shrink-0.w-10.h-10 {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        order: -1;
+    }
+    
+    /* Assistant avatar icon - smaller */
+    .flex.gap-4.group\/message.justify-start > .flex-shrink-0.w-10.h-10 svg {
+        width: 0.875rem !important;
+        height: 0.875rem !important;
+    }
+    
+    /* Message content padding */
+    .max-w-3xl.rounded-2xl.px-5.py-4 {
+        padding: 0.75rem 1rem !important;
+        border-radius: 1rem !important;
+    }
+    
+    /* Prose custom adjustments */
+    .prose-custom {
+        font-size: 0.9375rem;
+        line-height: 1.65;
+    }
+    
+    .prose-custom h1 {
+        font-size: 1.375rem;
+        margin-top: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .prose-custom h2 {
+        font-size: 1.125rem;
+        margin-top: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .prose-custom h3 {
+        font-size: 1rem;
+    }
+    
+    .prose-custom pre code {
+        padding: 0.75rem;
+        font-size: 0.8125rem;
+    }
+    
+    /* Code blocks - horizontal scroll */
+    .prose-custom pre {
+        margin: 0.75rem 0;
+    }
+    
+    .prose-custom pre code {
+        max-width: 100%;
+    }
+    
+    .code-block-wrapper {
+        margin: 0.75rem 0;
+    }
+    
+    .code-header {
+        padding: 0.375rem 0.5rem;
+    }
+    
+    /* Compact input area */
+    .border-t.border-gray-700.p-4 {
+        padding: 0.5rem !important;
+    }
+    
+    .max-w-4xl.mx-auto {
+        padding: 0 0.25rem;
+    }
+    
+    /* Input textarea */
+    textarea {
+        padding: 0.625rem 0.875rem !important;
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        min-height: 44px;
+    }
+    
+    /* Input buttons */
+    .flex.gap-3 button {
+        padding: 0.625rem !important;
+    }
+    
+    /* Send button */
+    button.gradient-bg.px-6.py-3 {
+        padding: 0.625rem 1rem !important;
+    }
+    
+    /* Attachment previews compact */
+    .mb-3.space-y-2 .flex.items-center.gap-2 {
+        padding: 0.375rem 0.625rem !important;
+    }
+    
+    /* Empty state compact */
+    .flex-col.items-center.justify-center h2 {
+        font-size: 1.25rem !important;
+    }
+    
+    .flex-col.items-center.justify-center p {
+        font-size: 0.875rem !important;
+        padding: 0 1rem;
+    }
+    
+    .flex-col.items-center.justify-center .gradient-bg.w-20.h-20 {
+        width: 3.5rem !important;
+        height: 3.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Settings modal full screen on mobile */
+    .fixed.inset-0.bg-black\/50.flex.items-center.justify-center > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Settings content scrollable */
+    .max-h-\[70vh\].overflow-y-auto {
+        max-height: calc(100vh - 140px) !important;
+    }
+    
+    /* Tab navigation scrollable */
+    .tab-nav {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    
+    .tab-nav::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab-button {
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Search modal adjustments */
+    .fixed.inset-0.bg-black\/50.flex.items-start.justify-center.pt-20 > div {
+        margin: 0 0.5rem !important;
+        max-width: calc(100vw - 1rem) !important;
+    }
+    
+    /* Help modal compact */
+    .fixed.inset-0.bg-black\/50.flex.items-center.justify-center .max-w-md {
+        max-width: calc(100vw - 1rem) !important;
+        margin: 0 0.5rem;
+    }
+    
+    /* Session context menu positioning */
+    .fixed.rounded-lg.shadow-xl.py-1 {
+        max-width: calc(100vw - 2rem);
+    }
+    
+    /* Input hint text */
+    .text-xs.text-gray-500.flex {
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: flex-start !important;
+    }
+    
+    /* Drag overlay */
+    .fixed.inset-0.bg-purple-600\/20 .text-4xl {
+        font-size: 2.5rem;
+    }
+    
+    .fixed.inset-0.bg-purple-600\/20 .text-xl {
+        font-size: 1rem;
+    }
+    
+    /* Sticky action buttons for assistant messages */
+    .sticky.top-20.self-start {
+        position: static !important;
+        flex-direction: row !important;
+        margin-top: 0.5rem;
+        opacity: 1 !important;
+    }
+    
+    .sticky.top-20.self-start button {
+        padding: 0.375rem 0.5rem !important;
+    }
+    
+    /* Reorganize message layout on mobile */
+    .flex.gap-4.group\/message.justify-start {
+        flex-wrap: wrap;
+    }
+    
+    .flex.gap-4.group\/message.justify-start > .sticky.top-20.self-start {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+    }
+}
+
+/* Phone Landscape (641px - 896px) */
+@media (min-width: 641px) and (max-width: 896px) {
+    html {
+        font-size: 15px;
+    }
+    
+    /* Compact header */
+    header {
+        padding: 0.5rem 1rem !important;
+    }
+    
+    /* Chat area padding */
+    main .overflow-y-auto.p-6 {
+        padding: 1rem !important;
+    }
+    
+    /* Message bubbles - wider in landscape */
+    main .max-w-3xl {
+        max-width: 85vw !important;
+    }
+    
+    /* User messages in landscape - flush right */
+    .flex.gap-4.group\/message.justify-end {
+        padding-left: 15vw;
+        padding-right: 0;
+        margin-right: -0.5rem;
+    }
+    
+    /* User avatar in landscape - pull to right edge */
+    .flex.gap-4.group\/message.justify-end > .flex-shrink-0.w-10.h-10 {
+        margin-right: 0;
+        margin-left: 0;
+    }
+    
+    /* Assistant messages in landscape - balanced padding */
+    .flex.gap-4.group\/message.justify-start {
+        padding-right: 15vw;
+        padding-left: 0;
+    }
+    
+    /* Input area */
+    .border-t.border-gray-700.p-4 {
+        padding: 0.75rem !important;
+    }
+    
+    /* Settings modal */
+    .fixed.inset-0.bg-black\/50.flex.items-center.justify-center > div {
+        max-height: 90vh !important;
+    }
+    
+    /* Tab navigation */
+    .tab-nav {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Tablet (897px - 1023px) */
+@media (min-width: 897px) and (max-width: 1023px) {
+    /* Slightly reduced sidebar width */
+    #app > aside:not(.w-0) {
+        width: 16rem !important;
+    }
+    
+    /* Message bubbles */
+    main .max-w-3xl {
+        max-width: 80vw !important;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    /* Increase touch targets */
+    button,
+    .tab-button,
+    input[type="range"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Remove hover effects that don't work on touch */
+    .group-hover\:opacity-100 {
+        opacity: 1 !important;
+    }
+    
+    /* Better scrolling */
+    .overflow-y-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Session items - always show menu button */
+    .opacity-0.group-hover\:opacity-100 {
+        opacity: 1 !important;
+    }
+}
+
+/* Small height devices (landscape phones) */
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Very compact header */
+    header {
+        padding: 0.375rem 0.75rem !important;
+        min-height: 48px;
+    }
+    
+    /* Compact input area */
+    .border-t.border-gray-700.p-4 {
+        padding: 0.375rem !important;
+    }
+    
+    textarea {
+        min-height: 36px;
+    }
+    
+    /* Maximize chat area */
+    main .overflow-y-auto.p-6 {
+        padding: 0.5rem !important;
+    }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Safe area insets for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+    @media (max-width: 640px) {
+        header {
+            padding-top: max(0.5rem, env(safe-area-inset-top)) !important;
+        }
+        
+        .border-t.border-gray-700.p-4 {
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
+        }
+    }
+}

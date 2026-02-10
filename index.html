@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f9fafb" media="(prefers-color-scheme: light)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>AI Chat Hub</title>
     <!-- External Dependencies -->
     <script src="css/tailwind.js"></script>
@@ -104,6 +109,14 @@
                 </div>
             </div>
         </aside>
+        
+        <!-- Sidebar Backdrop (mobile only) -->
+        <div
+            v-if="!sidebarCollapsed"
+            @click="sidebarCollapsed = true"
+            class="fixed inset-0 bg-black/30 z-30 lg:hidden"
+            style="backdrop-filter: blur(2px);"
+        ></div>
         
         <!-- Main Content -->
         <div class="flex-1 flex flex-col min-w-0">
